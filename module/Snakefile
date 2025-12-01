@@ -1,0 +1,16 @@
+rule cyannotool:
+    input:
+        matrix="data.matrix",
+        labels="data.true_labels"
+    output:
+        pred="analysis.prediction.cyannotool"
+    params:
+        name="{dataset}"
+    shell:
+        """
+        python {workflow.basedir}/entrypoint_cyanno.py \
+            --output_dir $(dirname {output.pred}) \
+            --name {params.name} \
+            --data.matrix {input.matrix} \
+            --data.true_labels {input.labels}
+        """
