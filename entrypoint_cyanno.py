@@ -2,15 +2,21 @@
 import argparse
 from pathlib import Path
 import subprocess
+import sys
+
 
 def main():
     parser = argparse.ArgumentParser(description="CyAnno OmniBenchmark module")
 
     # Required OmniBenchmark arguments
-    parser.add_argument("--output_dir", type=str, required=True,
-                        help="Directory where outputs must be written.")
-    parser.add_argument("--name", type=str, required=True,
-                        help="Dataset name used in output filename.")
+    parser.add_argument(
+        "--output_dir", type=str, required=True,
+        help="Directory where outputs must be written."
+    )
+    parser.add_argument(
+        "--name", type=str, required=True,
+        help="Dataset name used in output filename."
+    )
 
     # Inputs defined in YAML
     parser.add_argument("--data.matrix", dest="matrix", type=str, required=True)
@@ -21,32 +27,36 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # 🔴 FIX: use a file inside the directory, consistent with the YAML
+    # Match your YAML: {dataset}_predicted_labels.txt
     output_file = output_dir / f"{args.name}_predicted_labels.txt"
+    print(f"📄 Output will be saved to: {output_file}", flush=True)
 
-    print(f"📄 Output will be saved to: {output_file}")
+    # IMPORTANT: resolve run_cyanno.py relative to this file
+    repo_root = Path(__file__).resolve().parent
+    run_script = repo_root / "cyanno_pipeline" / "run_cyanno.py"
 
+    if not run_script.exists():
+        raise FileNotFoundError(f"run_cyanno.py not found at {run_script}")
+
+    # Use the same Python interpreter as the current process
     cmd = [
-        "python",
-        "-m", "cyanno_pipeline.run_cyanno",
+        sys.executable,
+        str(run_script),
         args.matrix,
         args.labels,
-        str(output_file)
+        str(output_file),
     ]
 
-    print("🚀 Running CyAnno pipeline:")
-    print("   ", " ".join(cmd))
+    print("🚀 Running CyAnno pipeline:", " ".join(cmd), flush=True)
 
-    # Let the subprocess print directly to stdout/stderr so Snakemake captures it
+    # Let stdout/stderr flow through so Snakemake captures real errors
     result = subprocess.run(cmd)
 
     if result.returncode != 0:
-        # propagate the error code so the workflow fails, 
-        # but we keep the *real* traceback from CyAnno in stderr.log
-        import sys
+        # propagate CyAnno’s exit code; its traceback will be in stderr.log
         sys.exit(result.returncode)
 
-    print(f"🎉 SUCCESS — prediction saved to {output_file}")
+    print(f"🎉 SUCCESS — prediction saved to {output_file}", flush=True)
 
 
 if __name__ == "__main__":
