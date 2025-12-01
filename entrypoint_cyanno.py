@@ -27,29 +27,28 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Must match the YAML: {dataset}_predicted_labels.txt
+    # Must match benchmark YAML: {dataset}_predicted_labels.txt
     output_file = output_dir / f"{args.name}_predicted_labels.txt"
     print(f"📄 Output will be saved to: {output_file}", flush=True)
 
-    # repo_root is the directory that contains cyanno_pipeline/
+    # Repo root in the cloned module (same level as `cyanno_pipeline/`)
     repo_root = Path(__file__).resolve().parent
+    run_script = repo_root / "cyanno_pipeline" / "run_cyanno.py"
 
-    # Call exactly like your manual test, but with cwd=repo_root
     cmd = [
         sys.executable,
-        "-m",
-        "cyanno_pipeline.run_cyanno",
+        str(run_script),
         args.matrix,
         args.labels,
         str(output_file),
     ]
 
     print("🚀 Running CyAnno pipeline:")
-    print("   ", " ".join(cmd))
+    print("   ", " ".join(cmd), flush=True)
     print(f"   (cwd = {repo_root})", flush=True)
 
-    # IMPORTANT: cwd=repo_root so Python sees cyanno_pipeline as a top-level package
-    result = subprocess.run(cmd, cwd=str(repo_root))
+    # No cwd needed, run_cyanno fixes sys.path itself
+    result = subprocess.run(cmd)
 
     if result.returncode != 0:
         raise RuntimeError(f"❌ CyAnno crashed (exit {result.returncode})")
