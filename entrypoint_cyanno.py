@@ -19,15 +19,17 @@ def main():
     )
 
     # Inputs defined in YAML
-    parser.add_argument("--data.matrix", dest="matrix", type=str, required=True)
-    parser.add_argument("--data.true_labels", dest="labels", type=str, required=True)
+    parser.add_argument("--train.data.matrix", type=str, required=True, dest="train_data_matrix")
+    parser.add_argument("--labels_train", type=str, required=True)
+    parser.add_argument("--test.data.matrix", type=str, required=True, dest="test_data_matrix")
+    parser.add_argument("--labels_test", type=str, required=True)
 
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Must match benchmark YAML: {dataset}_predicted_labels.txt
+    # Output file (OmniBenchmark convention)
     output_file = output_dir / f"{args.name}_predicted_labels.txt"
     print(f"📄 Output will be saved to: {output_file}", flush=True)
 
@@ -35,11 +37,14 @@ def main():
     repo_root = Path(__file__).resolve().parent
     run_script = repo_root / "cyanno_pipeline" / "run_cyanno.py"
 
+    # Build command to pass all four inputs
     cmd = [
         sys.executable,
         str(run_script),
-        args.matrix,
-        args.labels,
+        args.train_data_matrix,
+        args.labels_train,
+        args.test_data_matrix,
+        args.labels_test,
         str(output_file),
     ]
 
@@ -47,7 +52,7 @@ def main():
     print("   ", " ".join(cmd), flush=True)
     print(f"   (cwd = {repo_root})", flush=True)
 
-    # No cwd needed, run_cyanno fixes sys.path itself
+    # Run the pipeline
     result = subprocess.run(cmd)
 
     if result.returncode != 0:
